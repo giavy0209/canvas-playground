@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Va chạm và góc phản xạ</title>
+<style>
+  canvas {
+    border: 1px solid black;
+  }
+</style>
+</head>
+<body>
+  <canvas id="myCanvas" width="500" height="400"></canvas>
+  <script>
+    const canvas = document.getElementById('myCanvas');
+    const ctx = canvas.getContext('2d');
+
+    let balls = [];
+    let centerX = canvas.width / 2;
+    let centerY = canvas.height / 2;
+    let maxRadius = Math.min(centerX, centerY); 
+
+    function createBall() {
+      let angle = Math.random() * 2 * Math.PI;
+      let radius = Math.random() * 20 + 10;
+      let distanceFromCenter = maxRadius - radius - 10; 
+
+      return {
+        x: centerX + distanceFromCenter * Math.cos(angle),
+        y: centerY + distanceFromCenter * Math.sin(angle),
+        radius: radius,
+        vx: (Math.random() - 0.5) * 4,
+        vy: (Math.random() - 0.5) * 4,
+        mass: Math.random() * 1 + 0.5
+      };
+    }
+
+    for (let i = 0; i < 5; i++) {
+      balls.push(createBall());
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, maxRadius, 0, 2 * Math.PI);
+      ctx.strokeStyle = 'pink';
+      ctx.stroke();
+
+      for (let i = 0; i < balls.length; i++) {
+        let ball = balls[i];
+        ctx.beginPath();
+        ctx.arc(ball.x, ball.y, ball.radius, 0, 2 * Math.PI);
+        ctx.fill();
+
+        ctx.strokeStyle = 'green';
+        ctx.beginPath();
+        ctx.moveTo(ball.x, ball.y);
+        ctx.lineTo(ball.x + ball.vx * 50, ball.y + ball.vy * 50); // Điều chỉnh độ dài vector bằng cách nhân với 10
+        ctx.stroke();
+
+      }
+
+      for (let i = 0; i < balls.length; i++) {
+        for (let j = i + 1; j < balls.length; j++) {
+          let ball1 = balls[i];
+          let ball2 = balls[j];
+
+          let dx = ball2.x - ball1.x;
+          let dy = ball2.y - ball1.y;
+          let distance = Math.sqrt(dx * dx + dy * dy);
+          let minDistance = ball1.radius + ball2.radius;
+
+          if (distance < minDistance) {
+            let nx = dx / distance;
+            let ny = dy / distance;
+            let tx = -ny;
+            let ty = nx;
+
+            let v1n = ball1.vx * nx + ball1.vy * ny;
+            let v1t = ball1.vx * tx + ball1.vy * ty;
+            let v2n = ball2.vx * nx + ball2.vy * ny;
+            let v2t = ball2.vx * tx + ball2.vy * ty;
+
+            let v1n_new = ((ball1.mass - ball2.mass) * v1n + 2 * ball2.mass * v2n) / (ball1.mass + ball2.mass);
+            let v2n_new = ((ball2.mass - ball1.mass) * v2n + 2 * ball1.mass * v1n) / (ball1.mass + ball2.mass);
+
+            ball1.vx = v1n_new * nx + v1t * tx;
+            ball1.vy = v1n_new * ny + v1t * ty;
+            ball2.vx = v2n_new * nx + v2t * tx;
+            ball2.vy = v2n_new * ny + v2t * ty;
+
+            ctx.strokeStyle = 'red';
+            ctx.beginPath();
+            ctx.moveTo(ball1.x + nx * minDistance, ball1.y + ny * minDistance);
+            ctx.lineTo(ball1.x - nx * minDistance, ball1.y - ny * minDistance);
+            ctx.stroke();
+          }
+        }
+      }
+
+      for (let i = 0; i < balls.length; i++) {
+        let ball = balls[i];
+        let dx = ball.x - centerX;
+        let dy = ball.y - centerY;
+        let distance = Math.sqrt(dx * dx + dy * dy);
+        if (distance + ball.radius > maxRadius) {
+          let nx = dx / distance;
+          let ny = dy / distance;
+
+          let v1n = ball.vx * nx + ball.vy * ny;
+          let v1t = ball.vx * (-ny) + ball.vy * nx;
+
+          v1n = -v1n;
+
+          ball.vx = v1n * nx + v1t * (-ny);
+          ball.vy = v1n * ny + v1t * nx;
+
+          let overlap = distance + ball.radius - maxRadius;
+          ball.x -= overlap * nx;
+          ball.y -= overlap * ny;
+        }
+
+        ball.x += ball.vx;
+        ball.y += ball.vy;
+      }
+
+      requestAnimationFrame(draw);
+    }
+
+    draw();
+  </script> 
+</body>
+</html>
